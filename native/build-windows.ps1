@@ -1,5 +1,6 @@
-# Builds airspyhf.dll for the host architecture with MSVC and copies it, with
-# the libusb DLL, to dist\native\windows-<arch>.
+# Builds airspyhf.dll for the host architecture with MSVC and copies it to
+# dist\native\windows-<arch>. At runtime airspyhf.dll uses the libusb DLL that
+# jlibusb supplies, so only the import library is used here.
 #
 # Usage: native\build-windows.ps1 -Arch x64|ARM64 [-Ref <airspyhf-git-ref>]
 #
@@ -84,7 +85,6 @@ Write-Host "=== packaging $Platform ==="
 $Dll = Get-ChildItem -Recurse -Path build -Filter airspyhf.dll | Select-Object -First 1
 if (-not $Dll) { throw 'airspyhf.dll was not produced' }
 Copy-Item $Dll.FullName "$Out\airspyhf.dll"
-Copy-Item "$Work\usb\$UsbDir\libusb-1.0.dll" "$Out\libusb-1.0.dll"
 # The library sources are BSD-3-Clause. Upstream renamed LICENSE to LICENSE.BSD
 # when it added the GPL that covers only its build files and tools.
 $License = if (Test-Path 'airspyhf\LICENSE.BSD') { 'airspyhf\LICENSE.BSD' } else { 'airspyhf\LICENSE' }

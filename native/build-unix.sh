@@ -4,10 +4,10 @@
 #
 # Usage: native/build-unix.sh [airspyhf-git-ref]
 #
-# The ref may be a branch, a tag or a full commit hash. libusb stays a separate
-# shared library because it is LGPL-2.1: keeping it out of libairspyhf lets
-# users replace it. It is built without udev so the Linux binaries do not need
-# libudev at runtime.
+# The ref may be a branch, a tag or a full commit hash. libusb is built only to
+# link against: at runtime libairspyhf uses the libusb that jlibusb supplies,
+# loaded from the same directory, so the jar does not contain libusb. It is
+# built without udev, as jlibusb's is.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -89,21 +89,19 @@ cmake --build build-airspyhf --parallel "$JOBS" >/dev/null
 
 echo "=== packaging $PLATFORM ==="
 if [ "$OS" = linux ]; then
-    cp -L "$USB_PREFIX/lib/libusb-1.0.so.0" "$OUT/libusb-1.0.so.0"
     cp -L build-airspyhf/libairspyhf.so "$OUT/libairspyhf.so"
     chmod 755 "$OUT"/*
     # Only glibc and libusb may remain as dependencies.
     readelf -d "$OUT/libairspyhf.so" | grep -E 'NEEDED|RUNPATH|RPATH'
 else
-    cp -L "$USB_PREFIX/lib/libusb-1.0.0.dylib" "$OUT/libusb-1.0.0.dylib"
     cp -L build-airspyhf/libairspyhf.dylib "$OUT/libairspyhf.dylib"
     chmod 755 "$OUT"/*
-    # Point libairspyhf at the bundled libusb, not the absolute build path, and
-    # re-sign because install_name_tool invalidates the ad-hoc signatures.
-    install_name_tool -id @rpath/libusb-1.0.0.dylib "$OUT/libusb-1.0.0.dylib"
+    # Point libairspyhf at jlibusb's libusb, which is extracted next to it, not
+    # the absolute build path, and re-sign because install_name_tool
+    # invalidates the ad-hoc signature.
     install_name_tool -id @rpath/libairspyhf.dylib "$OUT/libairspyhf.dylib"
     install_name_tool -change "$USB_LIB" @loader_path/libusb-1.0.0.dylib "$OUT/libairspyhf.dylib"
-    codesign -f -s - "$OUT"/*.dylib
+    codesign -f -s - "$OUT/libairspyhf.dylib"
     otool -L "$OUT/libairspyhf.dylib"
     if otool -L "$OUT/libairspyhf.dylib" | grep -qF "$WORK"; then
         echo "libairspyhf still refers to the build directory" >&2
@@ -125,7 +123,6 @@ if [ -f airspyhf/LICENSE.BSD ]; then
 else
     cp airspyhf/LICENSE "$ROOT/dist/native/licenses/libairspyhf-LICENSE"
 fi
-cp "libusb-$LIBUSB_VERSION/COPYING" "$ROOT/dist/native/licenses/libusb-COPYING"
 cat > "$OUT/build-info.properties" <<INFO
 airspyhf.ref=$REF
 airspyhf.commit=$UPSTREAM_COMMIT
