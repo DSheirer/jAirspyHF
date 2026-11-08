@@ -2,8 +2,10 @@
 
 Java bindings for [libairspyhf](https://github.com/airspy/airspyhf), the driver
 for the Airspy HF+ Dual Port, HF+ Discovery and Ranger software-defined radios,
-built on the Java Foreign Function & Memory API. The jar contains the native
-libraries, so there is nothing else to install.
+built on the Java Foreign Function & Memory API. The jar contains libairspyhf
+for every supported platform and needs one other jar,
+[jlibusb](https://github.com/DSheirer/jlibusb), which supplies libusb. There is
+nothing to install.
 
 | OS | x86-64 | aarch64 |
 |---------|----|----|
@@ -16,7 +18,9 @@ Requires Java 23 or later.
 ## Getting it
 
 Download `jairspyhf-<version>.jar` from
-[Releases](https://github.com/DSheirer/jAirspyHF/releases). The rolling
+[Releases](https://github.com/DSheirer/jAirspyHF/releases), and the
+`jlibusb-<version>.jar` it was built with from
+[jlibusb releases](https://github.com/DSheirer/jlibusb/releases). The rolling
 [`nightly`](https://github.com/DSheirer/jAirspyHF/releases/tag/nightly)
 pre-release tracks `main` of this project and `master` of upstream.
 
@@ -65,10 +69,10 @@ Java prints a warning, which future versions will turn into an error, unless
 you allow native access:
 
 ```
-java --enable-native-access=ALL-UNNAMED -cp app.jar:jairspyhf.jar my.App
+java --enable-native-access=ALL-UNNAMED -cp app.jar:jairspyhf.jar:jlibusb.jar my.App
 ```
 
-On the module path, use `--enable-native-access=io.github.dsheirer.airspyhf`. In
+On the module path, use `--enable-native-access=io.github.dsheirer.airspyhf,io.github.dsheirer.libusb`. In
 your own executable jar, add `Enable-Native-Access: ALL-UNNAMED` to the manifest.
 
 ### USB access
@@ -80,10 +84,12 @@ your own executable jar, add `Enable-Native-Access: ALL-UNNAMED` to the manifest
 
 ### Native library location
 
-Libraries are extracted to the temporary directory at startup. Set
-`-Djairspyhf.library.path=<dir>` to load them from a directory instead: for
-example, to supply your own build of libusb, or if the temporary directory is
-mounted `noexec`.
+libairspyhf is extracted at startup into the private temporary directory that
+jlibusb extracts libusb to, so the process holds one copy of libusb shared with
+any other library built on jlibusb. Set `-Djairspyhf.library.path=<dir>` to load
+libairspyhf from a directory instead, and `-Djlibusb.library.path=<dir>` to
+supply your own build of libusb. If the temporary directory is mounted
+`noexec`, point `-Djava.io.tmpdir` elsewhere.
 
 ## Building
 
